@@ -1,0 +1,22 @@
+{
+  "name": "campus-intranet-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline-first campus intranet frontend (React + Vite)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "*",
+    "react": "*",
+    "react-dom": "*",
+    "react-router-dom": "*",
+    "socket.io-client": "*"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "*",
+    "vite": "*"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "campus-intranet-backend",
+  "version": "1.0.0",
+  "description": "Offline-first campus intranet backend (Node.js, Express, MongoDB, Socket.io)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "campus",
+    "intranet",
+    "offline-first",
+    "express",
+    "mongo",
+    "socket.io"
+  ],
+  "author": "Pradeep",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "*",
+    "cookie-parser": "*",
+    "cors": "*",
+    "dotenv": "*",
+    "express": "*",
+    "express-rate-limit": "^8.2.1",
+    "express-validator": "*",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "*",
+    "mongoose": "^9.2.2",
+    "morgan": "*",
+    "multer": "*",
+    "socket.io": "*"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
