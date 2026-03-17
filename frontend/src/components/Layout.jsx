@@ -5,6 +5,16 @@ import IiitbhLogo from "../assets/IiitbhLogo";
 import TickerBar from "./TickerBar";
 import api from "../utils/apiClient";
 
+const AzadiLogo = () => (
+  <div className="azadi-logo" aria-label="Azadi ka Amrit Mahotsav">
+    <div className="azadi-icon">75</div>
+    <div className="azadi-text">
+      <div>Azadi ka</div>
+      <div>Amrit Mahotsav</div>
+    </div>
+  </div>
+);
+
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -38,63 +48,67 @@ const Layout = ({ children }) => {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <div className="branding-block">
-          <IiitbhLogo size={38} />
+      <header className="top-banner">
+        <div className="banner-left">
+          <IiitbhLogo size={40} />
         </div>
-        <div className="user-block">
-          <button 
-            onClick={() => navigate("/profile")}
-            className="hover:opacity-75 transition text-left w-full"
-          >
-            <div className="user-name text-base font-semibold hover:underline">
-              {user?.name}
-            </div>
-            <div className="pill user-meta text-xs">
-              {user?.role} · {user?.department}
-            </div>
-          </button>
+        <div className="banner-center">
+          <div className="banner-title-hindi">
+            भारतीय सूचना प्रौद्योगिकी संस्थान भागलपुर
+          </div>
+          <div className="banner-title-eng">
+            INDIAN INSTITUTE OF INFORMATION TECHNOLOGY BHAGALPUR
+          </div>
+          <div className="banner-subtitle">(An Institute of National Importance under Act of Parliament)</div>
         </div>
-        <nav>
-          <NavLink to="/" end className={navClass}>
-            Dashboard
-          </NavLink>
-          <NavLink to="/institute" className={navClass}>
-            IIIT Bhagalpur
-          </NavLink>
-          <NavLink to="/notes" className={navClass}>
-            Notes & Files
-          </NavLink>
-          <NavLink to="/forum" className={navClass}>
-            Discussion Forum
-          </NavLink>
-          <NavLink to="/messages" className={navClass}>
-            Messaging
-          </NavLink>
-          <NavLink to="/announcements" className={navClass}>
-            Announcements
-          </NavLink>
-          <NavLink to="/notifications" className={navClass}>
-            <span className="flex items-center justify-between">
-              <span>Notifications</span>
-              {unreadCount > 0 && (
-                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
+        <div className="banner-right">
+          <AzadiLogo />
+        </div>
+      </header>
+
+      <nav className="main-nav">
+        <NavLink to="/" end className={navClass}>
+          Home
+        </NavLink>
+        <NavLink to="/institute" className={navClass}>
+          Institute
+        </NavLink>
+        <NavLink to="/announcements" className={navClass}>
+          Announcements
+        </NavLink>
+        <NavLink to="/notes" className={navClass}>
+          Notes
+        </NavLink>
+        <NavLink to="/forum" className={navClass}>
+          Forum
+        </NavLink>
+        <NavLink to="/messages" className={navClass}>
+          Messages
+        </NavLink>
+        <NavLink to="/notifications" className={navClass}>
+          Notifications
+          {unreadCount > 0 && (
+            <span className="nav-badge">
+              {unreadCount > 9 ? "9+" : unreadCount}
             </span>
-          </NavLink>
-        </nav>
-        <button
-          className="btn btn-secondary"
-          style={{ marginTop: "1.5rem", width: "100%" }}
-          onClick={handleLogout}
-        >
-          Logout
-        </button>
-      </aside>
-      <main className="content">
+          )}
+        </NavLink>
+      </nav>
+
+      <div className="ticker-wrapper">
         <TickerBar />
+      </div>
+
+      <section className="hero">
+        <div className="hero-overlay">
+          <div className="hero-headline">Computer Centre Cum Library Building</div>
+          <div className="hero-subtext">
+            A central hub for digital learning, resources and college collaboration.
+          </div>
+        </div>
+      </section>
+
+      <main className="content">
         {children}
       </main>
     </div>
