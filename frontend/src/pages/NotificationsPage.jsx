@@ -26,7 +26,7 @@ export default function NotificationsPage() {
         });
 
         return () => {
-          socket.off("newNotification");
+          socket.off("newNotification") ;
         };
       }
     }
