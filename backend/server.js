@@ -9,6 +9,7 @@ const cookieParser = require("cookie-parser");
 const dotenv = require("dotenv");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const jwt = require("jsonwebtoken");
 const { Server } = require("socket.io");
 
 dotenv.config();
@@ -20,17 +21,80 @@ const logger = {
   warn: (msg) => console.warn(`[WARN] ${new Date().toISOString()} - ${msg}`),
 };
 
+const allowedOrigins = (process.env.CORS_ORIGIN || process.env.CLIENT_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 const app = express();
 const server = http.createServer(app);
 
 /* ---------------- SOCKET SETUP ---------------- */
 const io = new Server(server, {
   cors: {
-    origin: true, // Allow all LAN origins
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("CORS policy does not allow access from this origin"));
+    },
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
+
+const getTokenFromHandshake = (socket) => {
+  if (socket.handshake.auth && socket.handshake.auth.token) {
+    return socket.handshake.auth.token;
+  }
+
+  const authHeader = socket.handshake.auth?.authorization || socket.handshake.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    return authHeader.split(" ")[1];
+  }
+
+  const cookie = socket.handshake.headers.cookie;
+  if (!cookie) {
+    return null;
+  }
+
+  const parsed = cookie
+    .split(";")
+    .map((c) => c.trim())
+    .reduce((acc, pair) => {
+      const [k, v] = pair.split("=");
+      acc[k] = v;
+      return acc;
+    }, {});
+
+  return parsed.token;
+};
+
+const verifySocketJwt = async (socket, next) => {
+  try {
+    const token = getTokenFromHandshake(socket);
+    if (!token) {
+      return next(new Error("Unauthorized: missing token"));
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
+    const user = await User.findById(decoded.id).select("-passwordHash");
+    if (!user) {
+      return next(new Error("Unauthorized: user not found"));
+    }
+
+    socket.user = user;
+    return next();
+  } catch (err) {
+    logger.error(`Socket auth error: ${err.message}`);
+    return next(new Error("Unauthorized"));
+  }
+};
+
+io.use(verifySocketJwt);
 
 /* ---------------- DATABASE CONNECTION ---------------- */
 const connectDB = async () => {
@@ -74,7 +138,16 @@ app.use(generalLimiter);
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || true, // Allow all LAN
+    origin: (origin, callback) => {
+      if (!origin) {
+        // Allow non-browser or same-origin requests (e.g., local CLI calls)
+        return callback(null, true);
+      }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("CORS policy does not allow access from this origin"));
+    },
     credentials: true,
   })
 );
@@ -120,15 +193,17 @@ io.on("connection", (socket) => {
     logger.info(`Client ${socket.id} joined department: ${dept}`);
   });
 
-  socket.on("joinDirect", (userId) => {
+  socket.on("joinDirect", () => {
+    const userId = socket.user && socket.user._id;
     if (!userId) return;
     socket.join(`user:${userId}`);
-    logger.info(`Client ${socket.id} joined direct: ${userId}`);
+    logger.info(`Client ${socket.id} joined direct room for user: ${userId}`);
   });
 
   socket.on("sendDirectMessage", async (payload) => {
     try {
-      const { from, to, text } = payload;
+      const from = socket.user && socket.user._id;
+      const { to, text } = payload;
       if (!from || !to || !text) {
         logger.warn("Invalid direct message payload");
         return;
@@ -151,7 +226,8 @@ io.on("connection", (socket) => {
 
   socket.on("sendDepartmentMessage", async (payload) => {
     try {
-      const { from, department, text } = payload;
+      const from = socket.user && socket.user._id;
+      const { department, text } = payload;
       if (!from || !department || !text) {
         logger.warn("Invalid department message payload");
         return;
@@ -175,7 +251,8 @@ io.on("connection", (socket) => {
 
   socket.on("sendAnnouncement", async (payload) => {
     try {
-      const { title, body, createdBy, isUrgent } = payload;
+      const createdBy = socket.user && socket.user._id;
+      const { title, body, isUrgent } = payload;
       if (!title || !body || !createdBy) {
         logger.warn("Invalid announcement payload");
         return;
