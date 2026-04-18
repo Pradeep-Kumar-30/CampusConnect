@@ -7,24 +7,24 @@ const { body, validationResult } = require("express-validator");
 // Get all notifications for current user
 router.get("/", auth, async (req, res) => {
   try {
-    const { limit = 20, offset = 0, unreadOnly = false } = req.query;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
+    const unreadOnly = req.query.unreadOnly === "true";
 
     let query = { recipient: req.user.id };
-    if (unreadOnly === "true") {
+    if (unreadOnly) {
       query.isRead = false;
     }
 
-    const total = await Notification.countDocuments(query);
-    const notifications = await Notification.find(query)
-      .populate("relatedUser", "name email avatar")
-      .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
-      .skip(parseInt(offset));
-
-    const unreadCount = await Notification.countDocuments({
-      recipient: req.user.id,
-      isRead: false,
-    });
+    const [total, notifications, unreadCount] = await Promise.all([
+      Notification.countDocuments(query),
+      Notification.find(query)
+        .populate("relatedUser", "name email avatar")
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip(offset),
+      Notification.countDocuments({ recipient: req.user.id, isRead: false })
+    ]);
 
     res.json({
       success: true,
@@ -32,9 +32,9 @@ router.get("/", auth, async (req, res) => {
       unreadCount,
       pagination: {
         total,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        hasMore: parseInt(offset) + parseInt(limit) < total,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
       },
     });
   } catch (error) {

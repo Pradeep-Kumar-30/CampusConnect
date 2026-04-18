@@ -22,10 +22,13 @@ router.post(
         tags: req.body.tags || [],
         createdBy: req.user._id,
       });
-      res.status(201).json(thread);
+      res.status(201).json({
+        success: true,
+        data: thread
+      });
     } catch (err) {
       console.error("Create thread error", err.message);
-      res.status(500).json({ message: "Server error" });
+      res.status(500).json({ success: false, message: "Server error" });
     }
   }
 );
@@ -40,10 +43,13 @@ router.get("/threads", auth, async (req, res) => {
     const threads = await Thread.find(filter)
       .populate("createdBy", "name role department")
       .sort({ createdAt: -1 });
-    res.json(threads);
+    res.json({
+      success: true,
+      data: threads
+    });
   } catch (err) {
     console.error("List threads error", err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
@@ -52,11 +58,14 @@ router.get("/threads/:id", auth, async (req, res) => {
     const thread = await Thread.findById(req.params.id)
       .populate("createdBy", "name role department")
       .populate("comments.author", "name role department");
-    if (!thread) return res.status(404).json({ message: "Thread not found" });
-    res.json(thread);
+    if (!thread) return res.status(404).json({ success: false, message: "Thread not found" });
+    res.json({
+      success: true,
+      data: thread
+    });
   } catch (err) {
     console.error("Get thread error", err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
@@ -72,7 +81,10 @@ router.post(
     try {
       const thread = await Thread.findById(req.params.id);
       if (!thread)
-        return res.status(404).json({ message: "Thread not found" });
+        return res.status(404).json({ 
+          success: false, 
+          message: "Thread not found" 
+        });
 
       thread.comments.push({
         author: req.user._id,
@@ -84,10 +96,13 @@ router.post(
         .populate("createdBy", "name role department")
         .populate("comments.author", "name role department");
 
-      res.status(201).json(populated);
+      res.status(201).json({
+        success: true,
+        data: populated
+      });
     } catch (err) {
       console.error("Add comment error", err.message);
-      res.status(500).json({ message: "Server error" });
+      res.status(500).json({ success: false, message: "Server error" });
     }
   }
 );
@@ -95,39 +110,38 @@ router.post(
 router.post("/threads/:id/vote", auth, async (req, res) => {
   const { direction } = req.body; // "up" or "down"
   if (!["up", "down"].includes(direction)) {
-    return res.status(400).json({ message: "Invalid vote direction" });
+    return res.status(400).json({ 
+      success: false, 
+      message: "Invalid vote direction" 
+    });
   }
 
   try {
-    const thread = await Thread.findById(req.params.id);
-    if (!thread) return res.status(404).json({ message: "Thread not found" });
-
     const userId = req.user._id;
+    const isUpvote = direction === "up";
 
-    thread.upvotes = thread.upvotes.filter(
-      (id) => id.toString() !== userId.toString()
-    );
-    thread.downvotes = thread.downvotes.filter(
-      (id) => id.toString() !== userId.toString()
-    );
+    const update = isUpvote 
+      ? { $addToSet: { upvotes: userId }, $pull: { downvotes: userId } }
+      : { $addToSet: { downvotes: userId }, $pull: { upvotes: userId } };
 
-    if (direction === "up") {
-      thread.upvotes.push(userId);
-    } else {
-      thread.downvotes.push(userId);
-    }
-
-    await thread.save();
+    const thread = await Thread.findByIdAndUpdate(req.params.id, update, { new: true });
+    
+    if (!thread) return res.status(404).json({ 
+      success: false, 
+      message: "Thread not found" 
+    });
 
     res.json({
-      upvotes: thread.upvotes.length,
-      downvotes: thread.downvotes.length,
+      success: true,
+      data: {
+        upvotes: thread.upvotes.length,
+        downvotes: thread.downvotes.length,
+      }
     });
   } catch (err) {
     console.error("Vote thread error", err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
 module.exports = router;
-

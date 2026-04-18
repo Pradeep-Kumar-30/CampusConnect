@@ -14,10 +14,11 @@ const auth = async (req, res, next) => {
     }
 
     if (!token) {
+      console.warn(`[AUTH] Access denied: No token found in headers or cookies for ${req.path}`);
       return res.status(401).json({ message: "No auth token provided" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "dnvhigoudrshrejgvrej");
     const user = await User.findById(decoded.id).select("-passwordHash");
 
     if (!user) {
@@ -33,4 +34,3 @@ const auth = async (req, res, next) => {
 };
 
 module.exports = auth;
-

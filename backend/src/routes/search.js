@@ -16,17 +16,30 @@ router.get("/", auth, async (req, res) => {
     const [notes, threads, messages] = await Promise.all([
       Note.find({ $text: { $search: q } }).limit(10),
       Thread.find({ $text: { $search: q } }).limit(10),
-      Message.find({ text: new RegExp(q, "i") })
+      Message.find({ 
+        $and: [
+          { text: new RegExp(q, "i") },
+          {
+            $or: [
+              { from: req.user._id },
+              { to: req.user._id },
+              { type: "department", department: req.user.department }
+            ]
+          }
+        ]
+      })
         .limit(10)
         .populate("from to", "name"),
     ]);
 
-    res.json({ notes, threads, messages });
+    res.json({
+      success: true,
+      data: { notes, threads, messages }
+    });
   } catch (err) {
     console.error("Search error", err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
 module.exports = router;
-

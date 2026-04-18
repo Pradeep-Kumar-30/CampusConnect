@@ -14,6 +14,12 @@ const { Server } = require("socket.io");
 
 dotenv.config();
 
+// Models - Moved to top for reliability
+const User = require("./src/models/User");
+const Message = require("./src/models/Message");
+const Announcement = require("./src/models/Announcement");
+const Mention = require("./src/models/Mention");
+
 // Logging utility
 const logger = {
   info: (msg) => console.log(`[INFO] ${new Date().toISOString()} - ${msg}`),
@@ -21,7 +27,7 @@ const logger = {
   warn: (msg) => console.warn(`[WARN] ${new Date().toISOString()} - ${msg}`),
 };
 
-const allowedOrigins = (process.env.CORS_ORIGIN || process.env.CLIENT_ORIGIN || "http://localhost:5173")
+const allowedOrigins = (process.env.CORS_ORIGIN || process.env.CLIENT_ORIGIN || "http://localhost:5174,http://10.142.116.131:5174")
   .split(",")
   .map((o) => o.trim())
   .filter(Boolean);
@@ -33,13 +39,16 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      if (!origin) {
+      // Allow localhost, the current server IP, and any local network IP (10.x.x.x, 192.168.x.x)
+      const isLocal = !origin || 
+                      origin.includes("localhost") || 
+                      origin.includes("127.0.0.1") || 
+                      /^https?:\/\/(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(origin);
+
+      if (isLocal || allowedOrigins.some(o => origin.startsWith(o))) {
         return callback(null, true);
       }
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error("CORS policy does not allow access from this origin"));
+      return callback(new Error(`CORS policy does not allow access from origin: ${origin}`));
     },
     methods: ["GET", "POST"],
     credentials: true,
@@ -80,7 +89,7 @@ const verifySocketJwt = async (socket, next) => {
       return next(new Error("Unauthorized: missing token"));
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "dnvhigoudrshrejgvrej");
     const user = await User.findById(decoded.id).select("-passwordHash");
     if (!user) {
       return next(new Error("Unauthorized: user not found"));
@@ -99,10 +108,28 @@ io.use(verifySocketJwt);
 /* ---------------- DATABASE CONNECTION ---------------- */
 const connectDB = async () => {
   try {
-    const uri =
-      process.env.MONGODB_URI ||
-      "mongodb://127.0.0.1:27017/campus_intranet";
+    let uri = process.env.MONGODB_URI;
 
+    // Default to local MongoDB if MONGODB_URI is not set or invalid
+    if (!uri || !uri.startsWith("mongodb")) {
+      logger.warn("MONGODB_URI not found or invalid in .env. Falling back to local MongoDB.");
+      uri = "mongodb://127.0.0.1:27017/campus_intranet";
+    }
+    
+    // Explicitly check if it's an Atlas URI
+    if (uri.includes("mongodb.net") && process.env.NODE_ENV === "production") {
+      logger.warn("Cloud MongoDB URI detected. Ensure your IP is whitelisted or use local MongoDB.");
+    } else {
+      logger.info("Connecting to MongoDB (likely local) for offline-first intranet.");
+    }
+
+    // Extract host for logging to avoid leaking credentials
+    const dbHost = uri.includes("@")
+      ? uri.split("@")[1].split("/")[0] 
+      : uri.replace("mongodb://", "").split("/")[0];
+
+    logger.info(`Attempting to connect to: ${dbHost}`);
+    
     await mongoose.connect(uri);
     logger.info("MongoDB connected successfully");
   } catch (err) {
@@ -110,11 +137,6 @@ const connectDB = async () => {
     process.exit(1);
   }
 };
-
-/* ---------------- MODELS ---------------- */
-const User = require("./src/models/User");
-const Message = require("./src/models/Message");
-const Announcement = require("./src/models/Announcement");
 
 /* ---------------- MIDDLEWARE SETUP & SECURITY ---------------- */
 // Security headers
@@ -140,13 +162,16 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) {
-        // Allow non-browser or same-origin requests (e.g., local CLI calls)
         return callback(null, true);
       }
-      if (allowedOrigins.includes(origin)) {
+      const isLocal = origin.includes("localhost") || 
+                      origin.includes("127.0.0.1") || 
+                      /^https?:\/\/(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(origin);
+
+      if (isLocal || allowedOrigins.some(o => origin.startsWith(o))) {
         return callback(null, true);
       }
-      return callback(new Error("CORS policy does not allow access from this origin"));
+      return callback(new Error(`CORS policy does not allow access from origin: ${origin}`));
     },
     credentials: true,
   })
@@ -324,7 +349,6 @@ io.on("connection", (socket) => {
       const { authorId, mentionedUserId, itemType, itemId, context } = data;
       if (!authorId || !mentionedUserId || !itemType || !itemId) return;
 
-      const Mention = require("./src/models/Mention");
       const mention = await Mention.create({
         author: authorId,
         mentionedUser: mentionedUserId,
@@ -333,8 +357,18 @@ io.on("connection", (socket) => {
         context,
       });
 
-      io.to(`user:${mentionedUserId}`).emit("mentioned", {
-        mention,
+      // Syncing with frontend NotificationsPage.jsx event name
+      io.to(`user:${mentionedUserId}`).emit("newNotification", {
+        _id: mention._id,
+        type: "mention",
+        title: "New Mention",
+        body: context || "Someone mentioned you in a discussion",
+        relatedUser: {
+          _id: socket.user._id,
+          name: socket.user.name
+        },
+        createdAt: mention.createdAt,
+        isRead: false
       });
 
       logger.info(`User ${mentionedUserId} mentioned by ${authorId}`);
@@ -424,6 +458,11 @@ connectDB().then(async () => {
     logger.info(`✓ Server listening on http://localhost:${PORT}`);
     logger.info(`✓ Environment: ${process.env.NODE_ENV || "development"}`);
   });
+});
+
+process.on("uncaughtException", (err) => {
+  logger.error(`Uncaught Exception: ${err.message}`);
+  process.exit(1);
 });
 
 process.on("unhandledRejection", (err) => {

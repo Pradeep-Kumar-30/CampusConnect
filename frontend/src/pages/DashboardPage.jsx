@@ -40,13 +40,20 @@ const DashboardPage = () => {
   }, []);
 
   return (
-    <div className="grid grid-2">
+    <div 
+      style={{ 
+        display: "grid", 
+        gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 450px), 1fr))", 
+        gap: "1.5rem", 
+        animation: "fadeInUp 0.5s ease-out" 
+      }}
+    >
       <div>
         <div className="card">
-          <h2 style={{ marginTop: 0, marginBottom: 4 }}>
-            Welcome, {user?.name || "User"}
+          <h2 style={{ marginTop: 0, marginBottom: 4, fontSize: "1.75rem", color: "#f8fafc" }}>
+            Hey, {user?.name?.split(' ')[0] || "User"} 👋
           </h2>
-          <p style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+          <p style={{ fontSize: "0.95rem", color: "#94a3b8" }}>
             Offline-first campus network running on your local LAN.
           </p>
           {error && (
@@ -68,14 +75,14 @@ const DashboardPage = () => {
               <SkeletonList count={2} height="1.2rem" />
             </div>
           ) : stats ? (
-            <div style={{ marginTop: "0.75rem", fontSize: "0.85rem" }}>
-              <div>
-                Notes in system:{" "}
-                <span className="pill">{stats.notesCount}</span>
+            <div style={{ marginTop: "1.5rem", display: "flex", gap: "1rem" }}>
+              <div style={{ background: "#0f172a", border: "1px solid #334155", padding: "1rem", borderRadius: "12px", flex: 1 }}>
+                <div style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase", fontWeight: "bold" }}>Notes</div>
+                <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#0ea5e9" }}>{stats.notesCount}</div>
               </div>
-              <div style={{ marginTop: 4 }}>
-                Announcements:{" "}
-                <span className="pill">{stats.announcementsCount}</span>
+              <div style={{ background: "#0f172a", border: "1px solid #334155", padding: "1rem", borderRadius: "12px", flex: 1 }}>
+                <div style={{ fontSize: "0.75rem", color: "#94a3b8", textTransform: "uppercase", fontWeight: "bold" }}>Alerts</div>
+                <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#22c55e" }}>{stats.announcementsCount}</div>
               </div>
             </div>
           ) : null}
@@ -169,4 +176,3 @@ const LatestAnnouncements = () => {
 };
 
 export default DashboardPage;
-

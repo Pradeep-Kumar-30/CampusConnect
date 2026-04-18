@@ -17,10 +17,13 @@ router.get("/direct/:userId", auth, async (req, res) => {
     })
       .sort({ createdAt: 1 })
       .populate("from to", "name department role");
-    res.json(messages);
+    res.json({
+      success: true,
+      data: messages
+    });
   } catch (err) {
     console.error("Get direct messages error", err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
@@ -33,12 +36,14 @@ router.get("/department/:department", auth, async (req, res) => {
     })
       .sort({ createdAt: 1 })
       .populate("from", "name department role");
-    res.json(messages);
+    res.json({
+      success: true,
+      data: messages
+    });
   } catch (err) {
     console.error("Get dept messages error", err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
 module.exports = router;
-

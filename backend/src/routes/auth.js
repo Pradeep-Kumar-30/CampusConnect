@@ -117,7 +117,7 @@ router.post(
 
       const token = jwt.sign(
         { id: user._id, role: user.role },
-        process.env.JWT_SECRET || "dev_secret",
+        process.env.JWT_SECRET || "dnvhigoudrshrejgvrej",
         { expiresIn: "7d" }
       );
 
@@ -125,7 +125,7 @@ router.post(
         .cookie("token", token, {
           httpOnly: true,
           sameSite: "lax",
-          secure: process.env.NODE_ENV === "production",
+          secure: false, // LAN environment (http) ke liye ise false hi rakhein
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         })
         .json({
@@ -177,4 +177,3 @@ router.post("/logout", (req, res) => {
 });
 
 module.exports = router;
-

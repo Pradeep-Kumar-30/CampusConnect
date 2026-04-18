@@ -37,7 +37,7 @@ export default function NotificationsPage() {
       setLoading(true);
       const unreadOnly = filter === "unread" ? "true" : "false";
       const res = await api.get(
-        `/api/notifications?limit=50&offset=0&unreadOnly=${unreadOnly}`
+        `/notifications?limit=50&offset=0&unreadOnly=${unreadOnly}`
       );
       setNotifications(res.data || []);
       setError("");
@@ -51,7 +51,7 @@ export default function NotificationsPage() {
 
   const fetchUnreadCount = async () => {
     try {
-      const res = await api.get("/api/notifications/unread/count");
+      const res = await api.get("/notifications/unread/count");
       setUnreadCount(res.data?.unreadCount || 0);
     } catch (err) {
       console.error("Fetch unread count error:", err);
@@ -60,7 +60,7 @@ export default function NotificationsPage() {
 
   const handleMarkAsRead = async (notificationId) => {
     try {
-      await api.patch(`/api/notifications/${notificationId}/read`);
+      await api.patch(`/notifications/${notificationId}/read`);
       setNotifications((prev) =>
         prev.map((n) =>
           n._id === notificationId ? { ...n, isRead: true } : n
@@ -74,7 +74,7 @@ export default function NotificationsPage() {
 
   const handleMarkAllAsRead = async () => {
     try {
-      await api.patch("/api/notifications/mark/all-read");
+      await api.patch("/notifications/mark/all-read");
       setNotifications((prev) =>
         prev.map((n) => ({ ...n, isRead: true }))
       );
@@ -86,7 +86,7 @@ export default function NotificationsPage() {
 
   const handleDelete = async (notificationId) => {
     try {
-      await api.delete(`/api/notifications/${notificationId}`);
+      await api.delete(`/notifications/${notificationId}`);
       setNotifications((prev) =>
         prev.filter((n) => n._id !== notificationId)
       );
@@ -98,7 +98,7 @@ export default function NotificationsPage() {
   const handleDeleteAll = async () => {
     if (window.confirm("Delete all notifications?")) {
       try {
-        await api.delete("/api/notifications");
+        await api.delete("/notifications");
         setNotifications([]);
         setUnreadCount(0);
       } catch (err) {
@@ -137,7 +137,7 @@ export default function NotificationsPage() {
   return (
     <div className="max-w-3xl mx-auto p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Notifications</h1>
           {unreadCount > 0 && (

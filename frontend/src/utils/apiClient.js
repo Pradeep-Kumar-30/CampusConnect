@@ -10,6 +10,18 @@ const api = axios.create({
   timeout: 10000,
 });
 
+// Request interceptor to attach the JWT token from localStorage
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Response interceptor for better error handling
 api.interceptors.response.use(
   (response) => {
@@ -32,4 +44,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-

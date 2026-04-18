@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
 const socketUrl =
-  import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
+  import.meta.env.VITE_SOCKET_URL || `http://${window.location.hostname}:5000`;
 
 export const socket = io(socketUrl, {
   withCredentials: true,
+  auth: {
+    token: localStorage.getItem("token")
+  }
 });
 
 // Custom hook for using socket in components
@@ -33,4 +36,3 @@ const useSocket = () => {
 };
 
 export default useSocket;
-

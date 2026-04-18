@@ -31,8 +31,8 @@ const Layout = ({ children }) => {
 
   const fetchUnreadCount = async () => {
     try {
-      const res = await api.get("/api/notifications/unread/count");
-      setUnreadCount(res.data?.unreadCount || 0);
+      const res = await api.get("/notifications/unread/count");
+      setUnreadCount(res.data?.unreadCount || res.unreadCount || 0);
     } catch (err) {
       console.error("Fetch unread count error:", err);
     }
@@ -48,11 +48,11 @@ const Layout = ({ children }) => {
 
   return (
     <div className="app-shell">
-      <header className="top-banner">
-        <div className="banner-left">
+      <header className="top-banner" style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", textAlign: "center", padding: "1rem", gap: "1rem" }}>
+        <div className="banner-left" style={{ display: "flex", justifyContent: "center" }}>
           <IiitbhLogo size={40} />
         </div>
-        <div className="banner-center">
+        <div className="banner-center" style={{ flex: "1 1 300px" }}>
           <div className="banner-title-hindi">
             भारतीय सूचना प्रौद्योगिकी संस्थान भागलपुर
           </div>
@@ -61,12 +61,12 @@ const Layout = ({ children }) => {
           </div>
           <div className="banner-subtitle">(An Institute of National Importance under Act of Parliament)</div>
         </div>
-        <div className="banner-right">
+        <div className="banner-right" style={{ display: "flex", justifyContent: "center" }}>
           <AzadiLogo />
         </div>
       </header>
 
-      <nav className="main-nav">
+      <nav className="main-nav" style={{ display: "flex", overflowX: "auto", whiteSpace: "nowrap", padding: "0 1rem", WebkitOverflowScrolling: "touch", gap: "0.5rem" }}>
         <NavLink to="/" end className={navClass}>
           Home
         </NavLink>
@@ -99,15 +99,6 @@ const Layout = ({ children }) => {
         <TickerBar />
       </div>
 
-      <section className="hero">
-        <div className="hero-overlay">
-          <div className="hero-headline">Computer Centre Cum Library Building</div>
-          <div className="hero-subtext">
-            A central hub for digital learning, resources and college collaboration.
-          </div>
-        </div>
-      </section>
-
       <main className="content">
         {children}
       </main>
@@ -116,4 +107,3 @@ const Layout = ({ children }) => {
 };
 
 export default Layout;
-

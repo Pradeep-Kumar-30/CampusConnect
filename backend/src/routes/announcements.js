@@ -25,10 +25,13 @@ router.post(
         createdBy: req.user._id,
         isUrgent: !!isUrgent,
       });
-      res.status(201).json(ann);
+      res.status(201).json({
+        success: true,
+        data: ann
+      });
     } catch (err) {
       console.error("Create announcement error", err.message);
-      res.status(500).json({ message: "Server error" });
+      res.status(500).json({ success: false, message: "Server error" });
     }
   }
 );
@@ -38,12 +41,14 @@ router.get("/", auth, async (req, res) => {
     const anns = await Announcement.find({})
       .populate("createdBy", "name role department")
       .sort({ createdAt: -1 });
-    res.json(anns);
+    res.json({
+      success: true,
+      data: anns
+    });
   } catch (err) {
     console.error("List announcements error", err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
 module.exports = router;
-
